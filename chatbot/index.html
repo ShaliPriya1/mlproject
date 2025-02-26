@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        /* Chat container */
+        .chat-container {
+            width: 300px;
+            height: 500px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            overflow-y: scroll;
+            display: flex;
+            flex-direction: column;
+            background-color: #f5f5f5;
+            position: relative;
+        }
+
+        /* Messages area */
+        .messages {
+            padding: 10px;
+            flex-grow: 1;
+        }
+
+        /* User message styles */
+        .user-message {
+            background-color: #d1ffd6;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 5px 0;
+            max-width: 80%;
+            position: relative;
+            margin-left: auto;
+        }
+
+        /* User message tail (right) */
+        .user-message::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: -10px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid #d1ffd6;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+        }
+
+        /* Bot message styles */
+        .bot-message {
+            background-color: #e0e0e0;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 5px 0;
+            max-width: 80%;
+            position: relative;
+        }
+
+        /* Bot message tail (left) */
+        .bot-message::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -10px;
+            width: 0;
+            height: 0;
+            border-right: 10px solid #e0e0e0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+        }
+
+        /* Input area */
+        .input-container {
+            padding: 10px;
+            display: flex;
+            border-top: 1px solid #ccc;
+            background-color: #fff;
+        }
+
+        .input-container input {
+            width: 85%;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+        }
+
+        .input-container button {
+            background-color: #25d366;
+            border: none;
+            padding: 10px;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="messages" id="messages"></div>
+    <div class="input-container">
+        <input type="text" id="user-input" placeholder="Type a message..." />
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+    // Function to send message
+    function sendMessage() {
+        const inputField = document.getElementById("user-input");
+        const message = inputField.value.trim();
+
+        if (message === "") return;
+
+        // Display user message
+        const userMessageDiv = document.createElement("div");
+        userMessageDiv.classList.add("user-message");
+        userMessageDiv.textContent = message;
+        document.getElementById("messages").appendChild(userMessageDiv);
+
+        // Clear input field
+        inputField.value = "";
+
+        // Auto reply with a bot message
+        setTimeout(() => {
+            const botMessageDiv = document.createElement("div");
+            botMessageDiv.classList.add("bot-message");
+            botMessageDiv.textContent = "This is a bot response.";
+            document.getElementById("messages").appendChild(botMessageDiv);
+
+            // Scroll to the bottom
+            document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+        }, 1000);
+    }
+</script>
+
+</body>
+</html>
