@@ -5,9 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatbot</title>
     <style>
-        /* Chat container */
+        /* Body to take full height of the screen and center the chat box */
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            background-color: #f0f0f0;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        /* Title styling */
+        h1 {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* Chat container - Extend the width to span across both sides */
         .chat-container {
-            width: 300px;
+            width: 60%; /* 80% of the width of the viewport */
+            max-width: 1200px; /* Maximum width to prevent it from becoming too wide */
             height: 500px;
             border: 1px solid #ccc;
             border-radius: 10px;
@@ -22,6 +42,7 @@
         .messages {
             padding: 10px;
             flex-grow: 1;
+            overflow-y: auto;
         }
 
         /* User message styles */
@@ -98,6 +119,8 @@
     </style>
 </head>
 <body>
+
+<h1>Chatbot Tool</h1>
 
 <div class="chat-container">
     <div class="messages" id="messages"></div>
