@@ -29,4 +29,7 @@ def save_to_csv(customers, filename="customer_data.csv"):
     print(f"Customer data saved to {filename}")
 
 if __name__ == "__main__":
-    # Generate mock custome
+    # Generate mock customer data
+    customers = generate_mock_customer_data(num_customers=100)
+    # Save the customer data to CSV
+    save_to_csv(customers)
