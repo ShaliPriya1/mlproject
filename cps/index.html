@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Base Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Customer Base Management</h2>
+        <form method="POST" action="/">
+            <div class="form-group">
+                <label for="name">Customer Name:</label>
+                <input type="text" id="name" name="name" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="feedback">Customer Feedback:</label>
+                <textarea id="feedback" name="feedback" class="form-control" rows="4"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+        <hr>
+        <h3>Results</h3>
+        <div>
+            <h4>Customer Segmentation:</h4>
+            <ul>
+                {% for customer in customers %}
+                    <li>{{ customer.name }}: Cluster {{ customer.cluster }}</li>
+                {% endfor %}
+            </ul>
+
+            <h4>Product Recommendations:</h4>
+            <ul>
+                {% for customer, recommended in recommendations.items() %}
+                    <li>{{ customer }}: Recommended Products - {{ recommended }}</li>
+                {% endfor %}
+            </ul>
+
+            <h4>LTV Prediction:</h4>
+            <p>Predicted LTV: {{ ltv_prediction }}</p>
+
+            <h4>Sentiment Analysis:</h4>
+            <p>Feedback Sentiment: {{ sentiment }}</p>
+
+            <h4>Customer Behavior Forecast:</h4>
+            <ul>
+                {% for customer, forecast in behavior_forecast.items() %}
+                    <li>{{ customer }}: Behavior Forecast - {{ forecast }}</li>
+                {% endfor %}
+            </ul>
+
+            <h4>Dynamic Pricing:</h4>
+            <p>Suggested Price: ${{ pricing }}</p>
+
+            <h4>Customer Campaigns:</h4>
+            <ul>
+                {% for customer, campaign in campaign.items() %}
+                    <li>{{ campaign }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
