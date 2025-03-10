@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request
-import numpy as np
 import pandas as pd
+import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
@@ -12,21 +12,28 @@ import random
 
 app = Flask(__name__)
 
-# Mock customer data generator
-def generate_mock_customer_data(num_customers=10):
+# Step 1: Read customer data from CSV file
+def load_customer_data(filename="customer_data.csv"):
+    df = pd.read_csv(filename)
+    
+    # Convert purchase_history from string to list
+    df['purchase_history'] = df['purchase_history'].apply(lambda x: list(map(int, x.split(', '))))
+    
+    # Convert DataFrame rows to dictionary format for each customer
     customers = []
-    for i in range(num_customers):
+    for index, row in df.iterrows():
         customer = {
-            'id': i,
-            'name': f"Customer {i+1}",
-            'age': random.randint(18, 65),
-            'income': random.randint(30000, 120000),
-            'purchase_history': [random.randint(100, 1000) for _ in range(5)],
-            'engagement_score': random.randint(50, 100),
-            'lifetime_value': random.randint(500, 5000),
-            'sentiment': random.choice(['positive', 'neutral', 'negative']),
+            'id': row['id'],
+            'name': row['name'],
+            'age': row['age'],
+            'income': row['income'],
+            'purchase_history': row['purchase_history'],
+            'engagement_score': row['engagement_score'],
+            'lifetime_value': row['lifetime_value'],
+            'sentiment': row['sentiment'],
         }
         customers.append(customer)
+    
     return customers
 
 # Step 1: Customer Segmentation using KMeans
@@ -114,7 +121,9 @@ def create_campaign(customers):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    customers = generate_mock_customer_data()
+    # Load customer data from CSV
+    customers = load_customer_data()
+    
     if request.method == "POST":
         # Process form inputs
         name = request.form.get("name")
