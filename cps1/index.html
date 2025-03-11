@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMB Base Management Dashboard</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>SMB Base Management Dashboard</h2>
+        <form method="POST" action="/">
+            <div class="form-group">
+                <label for="name">Customer Name:</label>
+                <input type="text" id="name" name="name" class="form-control" placeholder="Enter Customer Name">
+            </div>
+            <div class="form-group">
+                <label for="feedback">Customer Feedback:</label>
+                <textarea id="feedback" name="feedback" class="form-control" placeholder="Enter Customer Feedback"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Get Customer Insights</button>
+        </form>
+
+        {% if customer %}
+        <hr>
+        <h3>Customer Insights</h3>
+        <p><strong>Name:</strong> {{ customer['name'] }}</p>
+        <p><strong>Age:</strong> {{ customer['age'] }}</p>
+        <p><strong>Income:</strong> {{ customer['income'] }}</p>
+        <p><strong>Lifetime Value (LTV):</strong> {{ customer['lifetime_value'] }}</p>
+        <p><strong>Churn Prediction:</strong> {% if churn_prediction[0] == 1 %} High Risk {% else %} Low Risk {% endif %}</p>
+        <p><strong>Recommended Products:</strong> {{ recommendations }}</p>
+        <p><strong>Sentiment Analysis:</strong> {{ sentiment }}</p>
+        <p><strong>Behavior Forecast:</strong> {{ behavior_forecast[customer['name']] }}</p>
+        <p><strong>Dynamic Pricing:</strong> {{ pricing }}</p>
+        <p><strong>Campaign:</strong> {{ campaign[customer['name']] }}</p>
+        {% endif %}
+
+        <hr>
+        <h3>Customer Segments Visualization</h3>
+        <img src="data:image/png;base64,{{ customer_segments_plot }}" alt="Customer Segments">
+
+    </div>
+</body>
+</html>
