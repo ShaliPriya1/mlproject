@@ -1,11 +1,11 @@
 import PyPDF2
 import os
 import torch
-from transformers import BertTokenizer, BertForQuestionAnswering, Trainer, TrainingArguments
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sentence_transformers import SentenceTransformer
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 import pickle
 
-# Function to extract text from PDF
+# Step 1: Extract text from PDF
 def extract_text_from_pdf(pdf_path):
     with open(pdf_path, 'rb') as file:
         reader = PyPDF2.PdfReader(file)
@@ -14,57 +14,50 @@ def extract_text_from_pdf(pdf_path):
             text += page.extract_text()
     return text
 
-# Tokenization and vectorization
-def prepare_data(text):
-    # Example: Use simple TF-IDF Vectorizer or advanced NLP methods
-    vectorizer = TfidfVectorizer(stop_words='english')
-    text_data = [text]
-    tfidf_matrix = vectorizer.fit_transform(text_data)
-    return vectorizer, tfidf_matrix
+# Step 2: Embed document with Sentence-Transformer
+def create_embeddings(text):
+    # Split text into chunks (e.g., paragraphs or sections)
+    paragraphs = text.split('\n')
+    
+    # Load pre-trained Sentence-Transformer model
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    
+    # Create embeddings for each paragraph
+    embeddings = model.encode(paragraphs)
+    
+    # Save embeddings and corresponding paragraphs
+    with open('document_embeddings.pkl', 'wb') as f:
+        pickle.dump((paragraphs, embeddings), f)
 
-# Create and train model
-def train_model(text):
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-    model = BertForQuestionAnswering.from_pretrained('bert-base-uncased')
-
-    # Use a simple example for training
-    question = "What is the process for data extraction?" # Replace this with actual training data
-    answers = ["Data extraction involves parsing the document."]  # Replace with real data
-
-    # Tokenize the question and answer
-    encoding = tokenizer(question, text, return_tensors='pt')
-    labels = tokenizer(answers[0], return_tensors='pt')
-
-    # Fine-tuning Bert for QA
+# Step 3: Fine-tune T5 for generative question answering
+def fine_tune_t5(text):
+    tokenizer = T5Tokenizer.from_pretrained('t5-small')
+    model = T5ForConditionalGeneration.from_pretrained('t5-small')
+    
+    # Sample training data, you need to extract questions and answers from the text.
+    question = "What is the process for data extraction?"  # Example
+    answer = "Data extraction involves parsing the document and converting it into a structured format."  # Example
+    
+    # Tokenize input and output
+    input_text = f"question: {question} context: {text}"
+    target_text = answer
+    inputs = tokenizer(input_text, return_tensors="pt", padding=True, truncation=True)
+    targets = tokenizer(target_text, return_tensors="pt", padding=True, truncation=True)
+    
+    # Fine-tune model (this is just an example, you'd need a proper dataset for actual training)
     model.train()
-    training_args = TrainingArguments(
-        output_dir='./results',          # output directory
-        num_train_epochs=3,              # number of training epochs
-        per_device_train_batch_size=4,   # batch size for training
-        per_device_eval_batch_size=8,    # batch size for evaluation
-        warmup_steps=500,                # number of warmup steps for learning rate scheduler
-        weight_decay=0.01,               # strength of weight decay
-        logging_dir='./logs',            # directory for storing logs
-    )
+    outputs = model(input_ids=inputs['input_ids'], labels=targets['input_ids'])
+    
+    # Save the fine-tuned T5 model
+    model.save_pretrained('fine_tuned_t5')
+    tokenizer.save_pretrained('fine_tuned_t5')
 
-    trainer = Trainer(
-        model=model,                         # the instantiated 🤗 Transformers model to be trained
-        args=training_args,                  # training arguments, defined above
-        train_dataset=None,                  # Can create a custom dataset
-    )
-
-    trainer.train()
-
-    # Save the model
-    model.save_pretrained("model.bin")
-    tokenizer.save_pretrained("tokenizer")
-
-    # Save the vectorizer to use later in app.py
-    vectorizer, tfidf_matrix = prepare_data(text)
-    with open("vectorizer.pkl", "wb") as f:
-        pickle.dump(vectorizer, f)
+# Step 4: Running the entire pipeline
+def train_models(pdf_path):
+    text = extract_text_from_pdf(pdf_path)
+    create_embeddings(text)
+    fine_tune_t5(text)
 
 if __name__ == "__main__":
     pdf_path = 'your_document.pdf'  # Path to the process documentation PDF
-    text = extract_text_from_pdf(pdf_path)
-    train_model(text)
+    train_models(pdf_path)
