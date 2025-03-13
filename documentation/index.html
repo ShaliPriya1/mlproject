@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process Documentation Chatbot</title>
+    <style>
+        #chatbox {
+            width: 300px;
+            height: 400px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+        #inputBox {
+            width: 100%;
+            padding: 10px;
+        }
+        #submitButton {
+            padding: 10px;
+            background-color: blue;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Process Documentation Chatbot</h1>
+    <div id="chatbox"></div>
+    <input type="text" id="inputBox" placeholder="Ask a question...">
+    <button id="submitButton">Ask</button>
+
+    <script>
+        document.getElementById('submitButton').addEventListener('click', function() {
+            const query = document.getElementById('inputBox').value;
+            const chatbox = document.getElementById('chatbox');
+
+            if (query.trim()) {
+                chatbox.innerHTML += `<p><strong>You:</strong> ${query}</p>`;
+                fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    chatbox.innerHTML += `<p><strong>Bot:</strong> ${data.answer}</p>`;
+                    document.getElementById('inputBox').value = '';
+                    chatbox.scrollTop = chatbox.scrollHeight;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
