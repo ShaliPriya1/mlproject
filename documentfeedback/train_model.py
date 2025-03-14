@@ -2,6 +2,12 @@ import PyPDF2
 import os
 from transformers import T5Tokenizer, T5ForConditionalGeneration, Trainer, TrainingArguments
 import torch
+from transformers import T5Tokenizer, T5ForConditionalGeneration, Trainer, TrainingArguments
+import torch
+from sklearn.model_selection import train_test_split
+import glob
+import pathlib
+import re
 
 # Step 1: Extract text from multiple PDF files
 def extract_text_from_pdfs(pdf_paths):
@@ -20,42 +26,53 @@ text = extract_text_from_pdfs(pdf_paths)
 with open('processed_text.txt', 'w') as f:
     f.write(text)
 
-# Function to fine-tune T5 model on the extracted text
+
 def fine_tune_t5_model(text):
     tokenizer = T5Tokenizer.from_pretrained('t5-small')
     model = T5ForConditionalGeneration.from_pretrained('t5-small')
 
-    # Example question-answer pairs (you will need to manually create these from your document)
+    # Example question-answer pairs
     qa_pairs = [
         {"question": "What is the process for data extraction?", "answer": "Data extraction involves parsing the document and converting it into a structured format."},
         {"question": "What is the format of data?", "answer": "The data is usually in CSV or JSON format."},
         # Add more QA pairs related to your document...
     ]
     
-    # Tokenizing the input and output for fine-tuning
+    # Prepare the inputs and targets
     inputs = [f"question: {qa['question']} context: {text}" for qa in qa_pairs]
     targets = [qa['answer'] for qa in qa_pairs]
 
-    input_encodings = tokenizer(inputs, truncation=True, padding=True)
-    target_encodings = tokenizer(targets, truncation=True, padding=True)
+    # Split into train and validation sets (80% train, 20% validation)
+    train_inputs, eval_inputs, train_targets, eval_targets = train_test_split(inputs, targets, test_size=0.2)
 
-    # Prepare dataset
+    # Tokenize the train and eval inputs/targets
+    train_input_encodings = tokenizer(train_inputs, truncation=True, padding=True)
+    train_target_encodings = tokenizer(train_targets, truncation=True, padding=True)
+
+    eval_input_encodings = tokenizer(eval_inputs, truncation=True, padding=True)
+    eval_target_encodings = tokenizer(eval_targets, truncation=True, padding=True)
+
+    # Define a dataset class
     class QA_Dataset(torch.utils.data.Dataset):
         def __init__(self, input_encodings, target_encodings):
             self.input_encodings = input_encodings
             self.target_encodings = target_encodings
 
         def __getitem__(self, idx):
-            return {'input_ids': torch.tensor(self.input_encodings['input_ids'][idx]),
-                    'attention_mask': torch.tensor(self.input_encodings['attention_mask'][idx]),
-                    'labels': torch.tensor(self.target_encodings['input_ids'][idx])}
+            return {
+                'input_ids': torch.tensor(self.input_encodings['input_ids'][idx]),
+                'attention_mask': torch.tensor(self.input_encodings['attention_mask'][idx]),
+                'labels': torch.tensor(self.target_encodings['input_ids'][idx])
+            }
 
         def __len__(self):
             return len(self.input_encodings['input_ids'])
 
-    dataset = QA_Dataset(input_encodings, target_encodings)
+    # Create datasets for train and eval
+    train_dataset = QA_Dataset(train_input_encodings, train_target_encodings)
+    eval_dataset = QA_Dataset(eval_input_encodings, eval_target_encodings)
 
-    # Training arguments
+    # Set training arguments
     training_args = TrainingArguments(
         output_dir='./results', 
         evaluation_strategy="epoch", 
@@ -65,17 +82,21 @@ def fine_tune_t5_model(text):
         weight_decay=0.01
     )
 
+    # Initialize Trainer
     trainer = Trainer(
-        model=model, 
-        args=training_args, 
-        train_dataset=dataset
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset  # Pass the eval dataset
     )
 
+    # Train the model
     trainer.train()
-    
+
     # Save the fine-tuned model
     model.save_pretrained('fine_tuned_t5')
     tokenizer.save_pretrained('fine_tuned_t5')
 
-# Call the fine-tuning function
+# Assuming 'text' is the extracted document text
+text = "Here is your document text. Add more text as needed."
 fine_tune_t5_model(text)
