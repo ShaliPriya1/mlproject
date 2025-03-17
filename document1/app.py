@@ -4,6 +4,7 @@ import torch
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.decomposition import PCA
 
 # Initialize Flask app and load T5 model
 app = Flask(__name__)
@@ -39,6 +40,9 @@ def get_best_folder(query):
 
     folder_similarities = {}
 
+    # Apply PCA to match dimensions of query and folder embeddings
+    pca = PCA(n_components=query_embedding.shape[1])  # Match the number of components to query embedding size
+
     # Calculate cosine similarity with each folder's embeddings
     for folder, folder_embeddings in embeddings.items():
         # Ensure folder embeddings are not empty and reshape them if needed
@@ -49,17 +53,18 @@ def get_best_folder(query):
         
         # Reshape folder embeddings to 2D (n_samples, embedding_size) if necessary
         folder_embeddings = folder_embeddings.reshape(1, -1)
-        print(f"Query embedding shape: {query_embedding.shape}")
-        print(f"Folder embeddings shape for {folder}: {folder_embeddings.shape}")
+
+        # Apply PCA to reduce folder embedding dimensionality to match query embedding
+        folder_embeddings_pca = pca.fit_transform(folder_embeddings)
 
         # Calculate cosine similarity
-        cosine_sim = cosine_similarity(query_embedding, folder_embeddings)
+        cosine_sim = cosine_similarity(query_embedding, folder_embeddings_pca)
         folder_similarities[folder] = cosine_sim.max()
     
     # Find the folder with the highest similarity
     best_folder = max(folder_similarities, key=folder_similarities.get)
     return best_folder
-
+    
 # Function to get complete steps or specific info from a document
 def get_document_info(folder, query, return_complete=False):
     folder_docs = documents[folder]
