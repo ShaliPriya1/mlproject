@@ -1,5 +1,6 @@
 import os
 import json
+import fitz  # PyMuPDF
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -10,7 +11,7 @@ model = SentenceTransformer('all-MiniLM-L6-v2')  # You can change this model to 
 # Directory containing the folders of documents
 root_folder = "path_to_your_document_folders"  # Replace this with the path to your folders
 
-# Function to read all documents in a folder and store their contents
+# Function to read all PDF documents in a folder and store their contents
 def load_documents_from_folder(folder_path):
     documents = []
     filenames = []
@@ -19,10 +20,18 @@ def load_documents_from_folder(folder_path):
     for filename in os.listdir(folder_path):
         file_path = os.path.join(folder_path, filename)
         
-        # Check if it's a text file
-        if os.path.isfile(file_path) and file_path.endswith(".txt"):  # Modify this to handle other formats if needed
-            with open(file_path, 'r', encoding='utf-8') as file:
-                documents.append(file.read())  # Read the entire content of the document
+        # Check if it's a PDF file
+        if os.path.isfile(file_path) and file_path.endswith(".pdf"):  # Ensure we process only PDFs
+            with open(file_path, 'rb') as file:
+                pdf_document = fitz.open(file)
+                pdf_text = ""
+                
+                # Iterate over each page and extract text
+                for page_num in range(pdf_document.page_count):
+                    page = pdf_document.load_page(page_num)
+                    pdf_text += page.get_text()
+                
+                documents.append(pdf_text)  # Append the extracted text of the PDF
                 filenames.append(filename)  # Store the filename
     
     return documents, filenames
