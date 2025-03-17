@@ -39,9 +39,13 @@ def get_best_folder(query):
         cosine_sim = cosine_similarity([query_embedding], [folder_embedding])[0][0]
         folder_similarities[folder] = cosine_sim
     
+    # Debug: Print folder similarities to help debug
+    print(f"Folder similarities: {folder_similarities}")
+
     # Find the folder with the highest cosine similarity
     if folder_similarities:
         best_folder = max(folder_similarities, key=folder_similarities.get)
+        print(f"Best matching folder: {best_folder} with similarity: {folder_similarities[best_folder]}")
         return best_folder
     else:
         return "No matching folder found."
@@ -60,6 +64,13 @@ def get_document_info(folder, query):
 
     # Decode the output tokens to get the final answer
     answer = t5_tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+    # Debug: Print the answer to help debug
+    print(f"Generated answer: {answer}")
+    
+    # Check if answer is empty or too generic
+    if not answer or "I don't know" in answer:
+        return "Sorry, I couldn't find an answer based on the documents."
 
     return answer
 
