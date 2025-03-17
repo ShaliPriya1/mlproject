@@ -19,13 +19,27 @@ with open('embeddings_t5.json', 'r', encoding='utf-8') as f:
 
 # Function to find the best matching folder based on cosine similarity
 def get_best_folder(query):
-    query_embedding = tokenizer(query, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
+    # Tokenize and encode the query text using T5
+    inputs = tokenizer(query, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
+    with torch.no_grad():
+        # Generate the embeddings for the query using T5
+        outputs = model.encoder(inputs['input_ids'])[0]  # Get hidden states from the encoder
+        query_embedding = outputs.mean(dim=1).cpu().numpy()  # Average the token embeddings
+
     folder_similarities = {}
     
     # Calculate cosine similarity with each folder's embeddings
     for folder, folder_embeddings in embeddings.items():
-        cosine_sim = cosine_similarity(query_embedding['input_ids'].cpu().numpy(), folder_embeddings)
-        folder_similarities[folder] = cosine_sim.max()
+        folder_embedding = np.array(folder_embeddings)  # Convert list to numpy array
+        
+        # Reshape to 2D arrays
+        if folder_embedding.ndim == 1:
+            folder_embedding = folder_embedding.reshape(1, -1)
+        if query_embedding.ndim == 1:
+            query_embedding = query_embedding.reshape(1, -1)
+        
+        cosine_sim = cosine_similarity(query_embedding, folder_embedding)
+        folder_similarities[folder] = cosine_sim.max()  # Get the highest cosine similarity
     
     # Find the folder with the highest similarity
     best_folder = max(folder_similarities, key=folder_similarities.get)
