@@ -37,8 +37,11 @@ def get_best_folder(query):
         folder_embedding = np.array(folder_embeddings)  # Convert list to numpy array
         
         # Ensure folder embedding is a 2D array (1, 512)
-        if folder_embedding.ndim == 1:
-            folder_embedding = folder_embedding.reshape(1, -1)
+        if folder_embedding.ndim == 3:  # If it has an extra dimension, squeeze it
+            folder_embedding = folder_embedding.squeeze(0)  # Remove the extra dimension
+        
+        # Ensure the folder embedding is 2D (1, 512)
+        folder_embedding = folder_embedding.reshape(1, -1)
         
         print(f"Folder embedding shape for {folder}: {folder_embedding.shape}")
         
