@@ -18,10 +18,13 @@ with open('embeddings.json', 'r', encoding='utf-8') as f:
 # Function to find the best matching folder based on cosine similarity
 def get_best_folder(query):
     query_embedding = model.encode([query])  # Generate embedding for the query
+    query_embedding = query_embedding.tolist()  # Convert numpy array to list
+
     folder_similarities = {}
     
     # Calculate cosine similarity with each folder's embeddings
     for folder, folder_embeddings in embeddings.items():
+        folder_embeddings = np.array(folder_embeddings)  # Convert list back to numpy array if necessary
         cosine_sim = cosine_similarity([query_embedding], folder_embeddings)
         folder_similarities[folder] = cosine_sim.max()  # Get max similarity for each folder
     
