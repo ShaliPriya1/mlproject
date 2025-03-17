@@ -50,7 +50,7 @@ for folder_name in os.listdir(root_folder):
             if text:
                 folder_documents.append(text)
                 embedding = model.encode(text)  # Generate embedding for the document text
-                folder_embeddings.append(embedding)
+                folder_embeddings.append(embedding.tolist())  # Convert the numpy array to a list
 
         # Only save the folder if it has valid PDFs
         if folder_documents:
