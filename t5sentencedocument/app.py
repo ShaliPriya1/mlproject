@@ -32,13 +32,23 @@ def get_best_folder(query):
     # Get the embedding for the user's query using Sentence-BERT
     query_embedding = sentence_model.encode([query])[0]
 
+    # Debug: Check the shape of query_embedding
+    print(f"Query embedding shape: {query_embedding.shape if hasattr(query_embedding, 'shape') else 'No shape attribute'}")
+
     folder_similarities = {}
 
     # Calculate cosine similarity with each folder's name embedding
     for folder, folder_embedding in folder_name_embeddings.items():
-        cosine_sim = cosine_similarity([query_embedding], [folder_embedding])[0][0]
-        folder_similarities[folder] = cosine_sim
-    
+        try:
+            # Check the shape of folder_embedding
+            print(f"Folder: {folder}, Folder embedding shape: {np.array(folder_embedding).shape}")
+            
+            # Calculate cosine similarity between query and folder embedding
+            cosine_sim = cosine_similarity([query_embedding], [folder_embedding])[0][0]
+            folder_similarities[folder] = cosine_sim
+        except Exception as e:
+            print(f"Error processing folder '{folder}': {e}")
+
     # Debug: Print folder similarities to help debug
     print(f"Folder similarities: {folder_similarities}")
 
