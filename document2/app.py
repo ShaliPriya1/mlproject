@@ -61,8 +61,12 @@ def get_best_folder(query):
         folder_similarities[folder] = cosine_sim.max()  # Use the maximum cosine similarity for each folder
     
     # Find the folder with the highest similarity
-    best_folder = max(folder_similarities, key=folder_similarities.get)
-    return best_folder
+    if folder_similarities:
+        best_folder = max(folder_similarities, key=folder_similarities.get)
+        print(f"Best folder: {best_folder}")
+        return best_folder
+    else:
+        return "No matching folder found."
 
 # Function to get complete steps or specific info from a document
 def get_document_info(folder, query, return_complete=False):
@@ -85,6 +89,8 @@ def get_document_info(folder, query, return_complete=False):
     # Decode the output tokens to get the final answer
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
     
+    print(f"Generated answer: {answer}")
+    
     return answer
 
 @app.route('/')
@@ -96,8 +102,12 @@ def chat():
     try:
         user_input = request.json['user_input']  # Fetch user input from JSON data
         
+        # Check if input is received properly
+        print(f"User input received: {user_input}")
+        
         # Get the best folder based on cosine similarity
         best_folder = get_best_folder(user_input)
+        print(f"Best folder: {best_folder}")
         
         # If the user asks for complete steps
         if "complete steps" in user_input.lower():
@@ -106,6 +116,7 @@ def chat():
             # Get specific info from the most relevant document using T5
             response = get_document_info(best_folder, user_input, return_complete=False)
         
+        print(f"Response: {response}")
         return jsonify({"response": response})
     except Exception as e:
         return jsonify({"error": str(e)})
