@@ -8,8 +8,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 # Initialize Sentence Transformer model for embeddings
 model = SentenceTransformer('all-MiniLM-L6-v2')  # You can change this model to any other sentence transformer model.
 
-# Directory containing the folders of documents
-root_folder = "path_to_your_document_folders"  # Replace this with the path to your folders
+# Directory containing the folders of documents (current directory)
+root_folder = os.getcwd()  # Get the current working directory
 
 # Function to read all PDF documents in a folder and store their contents
 def load_documents_from_folder(folder_path):
@@ -65,6 +65,9 @@ def process_folders(root_folder):
             
             # Create embeddings for the documents
             embeddings = create_embeddings_for_documents(documents)
+            
+            # Convert the embeddings from numpy array to lists (JSON serializable)
+            embeddings = embeddings.tolist()
             
             # Store the embeddings, filenames, and documents
             all_embeddings[folder_name] = embeddings
