@@ -1,15 +1,17 @@
 from flask import Flask, render_template, request, jsonify
 import json
-from sentence_transformers import SentenceTransformer
+import torch
+from transformers import T5ForConditionalGeneration, T5Tokenizer
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Initialize Flask app and load SentenceTransformer model
+# Initialize Flask app and load T5 model
 app = Flask(__name__)
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = T5ForConditionalGeneration.from_pretrained('t5-small')  # You can use 't5-base' or 't5-large'
+tokenizer = T5Tokenizer.from_pretrained('t5-small')
 
 # Load preprocessed embeddings and folder information
-with open('embeddings.json', 'r', encoding='utf-8') as f:
+with open('embeddings_t5.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
     embeddings = data['embeddings']
     filenames = data['filenames']
@@ -17,20 +19,54 @@ with open('embeddings.json', 'r', encoding='utf-8') as f:
 
 # Function to find the best matching folder based on cosine similarity
 def get_best_folder(query):
-    query_embedding = model.encode([query])  # Generate embedding for the query
-    query_embedding = query_embedding.tolist()  # Convert numpy array to list
+    # Check if the query is empty
+    if not query.strip():
+        return "Please provide a valid query."  # Handle empty query case
+
+    # Tokenize and encode the query text using T5
+    inputs = tokenizer(query, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
+    
+    with torch.no_grad():
+        # Get the hidden states (token embeddings) from the encoder
+        outputs = model.encoder(inputs['input_ids'])[0]
+        
+        # Average the token embeddings to get a single vector
+        query_embedding = outputs.mean(dim=1).cpu().numpy()
+    
+    # Ensure query embedding is a 2D array (1, 512)
+    query_embedding = query_embedding.reshape(1, -1)
+    
+    print(f"Query embedding shape: {query_embedding.shape}")
+    if query_embedding.shape[1] == 0:
+        return "Error: Query embedding has no features."
 
     folder_similarities = {}
     
     # Calculate cosine similarity with each folder's embeddings
     for folder, folder_embeddings in embeddings.items():
-        folder_embeddings = np.array(folder_embeddings)  # Convert list back to numpy array if necessary
-        cosine_sim = cosine_similarity([query_embedding], folder_embeddings)
-        folder_similarities[folder] = cosine_sim.max()  # Get max similarity for each folder
+        folder_embedding = np.array(folder_embeddings)  # Convert list to numpy array
+        
+        # Ensure folder embedding is a 2D array (1, 512)
+        if folder_embedding.ndim == 3:  # If it has an extra dimension, squeeze it
+            folder_embedding = folder_embedding.squeeze(0)  # Remove the extra dimension
+        
+        # Ensure the folder embedding is 2D (1, 512)
+        folder_embedding = folder_embedding.reshape(1, -1)
+        
+        print(f"Folder embedding shape for {folder}: {folder_embedding.shape}")
+        if folder_embedding.shape[1] == 0:
+            return f"Error: Folder embedding for {folder} has no features."
+
+        cosine_sim = cosine_similarity(query_embedding, folder_embedding)  # Calculate similarity
+        folder_similarities[folder] = cosine_sim.max()  # Use the maximum cosine similarity for each folder
     
     # Find the folder with the highest similarity
-    best_folder = max(folder_similarities, key=folder_similarities.get)
-    return best_folder
+    if folder_similarities:
+        best_folder = max(folder_similarities, key=folder_similarities.get)
+        print(f"Best folder: {best_folder}")
+        return best_folder
+    else:
+        return "No matching folder found."
 
 # Function to get complete steps or specific info from a document
 def get_document_info(folder, query, return_complete=False):
@@ -40,15 +76,20 @@ def get_document_info(folder, query, return_complete=False):
     if return_complete:
         return "\n".join(folder_docs)
     
-    # Otherwise, use SentenceTransformer to answer the user's question based on the documents
+    # Otherwise, use T5 to answer the user's question based on the documents
     document = "\n".join(folder_docs)  # Combine all documents into one context for the question-answering task
     input_text = f"question: {query} context: {document}"
     
-    # Generate embedding for the context and query
-    inputs = model.encode(input_text)
+    # Tokenize the input text
+    inputs = tokenizer(input_text, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
     
-    # Generate the answer using the model (placeholder logic here, could be improved)
-    answer = "This is a placeholder answer based on the query."
+    # Generate the answer from the model
+    outputs = model.generate(inputs["input_ids"], max_length=150, num_beams=4, early_stopping=True)
+    
+    # Decode the output tokens to get the final answer
+    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
+    print(f"Generated answer: {answer}")
     
     return answer
 
@@ -58,18 +99,27 @@ def home():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    user_input = request.json['user_input']  # Fix the key from 'user_input' in JSON
-    # Get the best folder based on cosine similarity
-    best_folder = get_best_folder(user_input)
-    
-    # If the user asks for complete steps
-    if "complete steps" in user_input.lower():
-        response = get_document_info(best_folder, user_input, return_complete=True)
-    else:
-        # Get specific info from the most relevant document
-        response = get_document_info(best_folder, user_input, return_complete=False)
-    
-    return jsonify({"response": response})
+    try:
+        user_input = request.json['user_input']  # Fetch user input from JSON data
+        
+        # Check if input is received properly
+        print(f"User input received: {user_input}")
+        
+        # Get the best folder based on cosine similarity
+        best_folder = get_best_folder(user_input)
+        print(f"Best folder: {best_folder}")
+        
+        # If the user asks for complete steps
+        if "complete steps" in user_input.lower():
+            response = get_document_info(best_folder, user_input, return_complete=True)
+        else:
+            # Get specific info from the most relevant document using T5
+            response = get_document_info(best_folder, user_input, return_complete=False)
+        
+        print(f"Response: {response}")
+        return jsonify({"response": response})
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 if __name__ == '__main__':
     app.run(debug=True)
