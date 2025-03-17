@@ -51,8 +51,15 @@ def process_folders(root_folder):
     for folder_name in os.listdir(root_folder):
         folder_path = os.path.join(root_folder, folder_name)
         
-        # Only process folders (skip files)
+        # Check if it's a directory (folder)
         if os.path.isdir(folder_path):
+            # Check if the folder contains any PDF files
+            pdf_files = [f for f in os.listdir(folder_path) if f.endswith(".pdf")]
+            
+            # Skip the folder if it contains no PDF files
+            if not pdf_files:
+                continue
+            
             # Load documents from the folder
             documents, filenames = load_documents_from_folder(folder_path)
             
