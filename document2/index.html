@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document-based Question Answering</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #chatbox { margin-top: 20px; }
+        .user-input { font-weight: bold; }
+        .response { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Document-based Question Answering</h1>
+    <form id="chat-form">
+        <label for="user_input">Ask a question:</label><br>
+        <input type="text" id="user_input" name="user_input" required><br><br>
+        <button type="submit">Ask</button>
+    </form>
+    
+    <div id="chatbox"></div>
+
+    <script>
+        document.getElementById('chat-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const userInput = document.getElementById('user_input').value;
+            
+            // Display the user's input
+            const chatbox = document.getElementById('chatbox');
+            chatbox.innerHTML += `<div class="user-input">You: ${userInput}</div>`;
+
+            // Send the user input to Flask server
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_input: userInput }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                const response = data.response;
+                chatbox.innerHTML += `<div class="response">Bot: ${response}</div>`;
+                document.getElementById('user_input').value = '';  // Clear the input field
+            });
+        });
+    </script>
+</body>
+</html>
