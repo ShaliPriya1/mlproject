@@ -29,6 +29,7 @@ def extract_text_from_pdf(pdf_path):
 embeddings = {}
 documents = {}
 filenames = {}
+folder_names_embeddings = {}  # To store folder name embeddings
 
 # Function to get embeddings from T5 model
 def get_embedding_from_t5(text):
@@ -48,6 +49,10 @@ for folder_name in os.listdir(root_folder):
         # List to hold the folder's document texts and embeddings
         folder_documents = []
         folder_embeddings = []
+        
+        # Embed the folder name itself
+        folder_name_embedding = get_embedding_from_t5(folder_name)  # Generate embedding for folder name
+        folder_names_embeddings[folder_name] = folder_name_embedding.tolist()  # Save it
         
         # Check if folder contains PDF files
         pdf_files = [f for f in os.listdir(folder_path) if f.lower().endswith('.pdf')]
@@ -76,7 +81,8 @@ with open('embeddings_t5.json', 'w', encoding='utf-8') as f:
     json.dump({
         'embeddings': embeddings,
         'documents': documents,
-        'filenames': filenames
+        'filenames': filenames,
+        'folder_names_embeddings': folder_names_embeddings  # Include the folder name embeddings
     }, f, ensure_ascii=False, indent=4)
 
 print("Embedding extraction complete.")
