@@ -105,16 +105,15 @@ def chat():
         # Check if input is received properly
         print(f"User input received: {user_input}")
         
-        # Get the best folder based on cosine similarity
+        # Step 1: Get the best folder based on cosine similarity (find the folder)
         best_folder = get_best_folder(user_input)
         print(f"Best folder: {best_folder}")
         
-        # If the user asks for complete steps
-        if "complete steps" in user_input.lower():
-            response = get_document_info(best_folder, user_input, return_complete=True)
-        else:
-            # Get specific info from the most relevant document using T5
-            response = get_document_info(best_folder, user_input, return_complete=False)
+        if best_folder == "No matching folder found.":
+            return jsonify({"response": "Sorry, no relevant folder found for the query."})
+        
+        # Step 2: Retrieve the answer from the documents in the selected folder
+        response = get_document_info(best_folder, user_input, return_complete=False)
         
         print(f"Response: {response}")
         return jsonify({"response": response})
