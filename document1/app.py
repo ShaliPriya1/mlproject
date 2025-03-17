@@ -28,12 +28,17 @@ def get_best_folder(query):
 
     # We use the last hidden state as the query embedding
     query_embedding = encoder_outputs.last_hidden_state.mean(dim=1)  # Take the mean of the last hidden state
+    
+    # Reshape the query embedding to 2D (1, embedding_size)
+    query_embedding = query_embedding.cpu().numpy().reshape(1, -1)
 
     folder_similarities = {}
     
     # Calculate cosine similarity with each folder's embeddings
     for folder, folder_embeddings in embeddings.items():
-        cosine_sim = cosine_similarity(query_embedding.numpy(), folder_embeddings)
+        # Reshape folder embeddings to 2D (n_samples, embedding_size) if necessary
+        folder_embeddings = np.array(folder_embeddings).reshape(1, -1)
+        cosine_sim = cosine_similarity(query_embedding, folder_embeddings)
         folder_similarities[folder] = cosine_sim.max()
     
     # Find the folder with the highest similarity
