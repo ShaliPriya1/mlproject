@@ -1,17 +1,17 @@
 import os
 import json
-from sentence_transformers import SentenceTransformer
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 from PyPDF2 import PdfReader
 import torch
 import numpy as np
+from sentence_transformers import SentenceTransformer
 
-# Initialize Sentence Transformer model for folder name embeddings
-sentence_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')  # Sentence-BERT model
-
-# Initialize T5 model and tokenizer for document answering
+# Initialize T5 model and tokenizer
 t5_model = T5ForConditionalGeneration.from_pretrained('t5-small')
 t5_tokenizer = T5Tokenizer.from_pretrained('t5-small')
+
+# Initialize Sentence-BERT model for folder name matching
+sentence_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
 # Directory containing the folders of documents
 root_folder = os.getcwd()  # Using the current working directory
@@ -30,12 +30,12 @@ def extract_text_from_pdf(pdf_path):
         return ""
 
 # Initialize data structures
-folder_name_embeddings = {}  # To store embeddings for folder names (Sentence-BERT)
-documents = {}  # To store documents in each folder
-filenames = {}  # To store filenames for each folder
+folder_name_embeddings = {}
+documents = {}
+filenames = {}
 
-# Function to get embeddings from T5 model (for document answering)
-def get_t5_embedding(text):
+# Function to get embeddings from T5 model
+def get_embedding_from_t5(text):
     inputs = t5_tokenizer(text, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
     with torch.no_grad():
         # Get the hidden states (token embeddings) from the encoder
@@ -44,18 +44,22 @@ def get_t5_embedding(text):
         embedding = outputs.mean(dim=1).cpu().numpy()
     return embedding
 
-# Function to get Sentence-BERT embeddings (for folder name matching)
-def get_sentence_embedding(text):
-    return sentence_model.encode(text)
+# Function to get folder name embedding using Sentence-BERT
+def get_folder_embedding(folder_name):
+    return sentence_model.encode([folder_name])[0]  # Return the embedding as a list
 
 # Loop through the folders in the root folder
 for folder_name in os.listdir(root_folder):
     folder_path = os.path.join(root_folder, folder_name)
     
     if os.path.isdir(folder_path):
-        # List to hold the folder's document texts and their embeddings
+        # List to hold the folder's document texts and embeddings
         folder_documents = []
-        folder_document_embeddings = []  # Embeddings for documents within the folder
+        folder_embeddings = []
+        
+        # Get folder embedding (folder name)
+        folder_name_embedding = get_folder_embedding(folder_name)
+        folder_name_embeddings[folder_name] = folder_name_embedding.tolist()  # Convert numpy array to list
         
         # Check if folder contains PDF files
         pdf_files = [f for f in os.listdir(folder_path) if f.lower().endswith('.pdf')]
@@ -70,11 +74,8 @@ for folder_name in os.listdir(root_folder):
             
             if text:
                 folder_documents.append(text)
-                embedding = get_t5_embedding(text)  # Generate embedding using T5
-                folder_document_embeddings.append(embedding.tolist())  # Convert the numpy array to a list
-
-        # Generate and store the folder embedding (using Sentence-BERT for folder name)
-        folder_name_embeddings[folder_name] = get_sentence_embedding(folder_name)
+                embedding = get_embedding_from_t5(text)  # Generate embedding using T5
+                folder_embeddings.append(embedding.tolist())  # Convert numpy array to list
 
         # Only save the folder if it has valid PDFs
         if folder_documents:
