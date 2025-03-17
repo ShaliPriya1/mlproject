@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .chat-container {
+            width: 60%;
+            max-width: 600px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .chat-log {
+            max-height: 400px;
+            overflow-y: scroll;
+            margin-bottom: 20px;
+            padding-right: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .chat-input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+        }
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-log" id="chat-log"></div>
+        <textarea id="user-input" class="chat-input" rows="3" placeholder="Ask me anything..."></textarea><br>
+        <button id="send-btn" class="button">Send</button>
+    </div>
+
+    <script>
+        const chatLog = document.getElementById('chat-log');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-btn');
+
+        sendButton.addEventListener('click', () => {
+            const userText = userInput.value.trim();
+            if (userText) {
+                // Display user input in chat log
+                chatLog.innerHTML += `<div><strong>You:</strong> ${userText}</div>`;
+                userInput.value = '';
+                chatLog.scrollTop = chatLog.scrollHeight; // Scroll to the bottom
+                
+                // Send the user input to the server for processing
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ user_input: userText }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Display the chatbot response in the chat log
+                    const botResponse = data.response || "Sorry, I couldn't find an answer.";
+                    chatLog.innerHTML += `<div><strong>Bot:</strong> ${botResponse}</div>`;
+                    chatLog.scrollTop = chatLog.scrollHeight; // Scroll to the bottom
+                })
+                .catch(error => {
+                    chatLog.innerHTML += `<div><strong>Bot:</strong> Sorry, an error occurred.</div>`;
+                    chatLog.scrollTop = chatLog.scrollHeight; // Scroll to the bottom
+                });
+            }
+        });
+    </script>
+</body>
+</html>
