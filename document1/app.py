@@ -49,6 +49,8 @@ def get_best_folder(query):
         
         # Reshape folder embeddings to 2D (n_samples, embedding_size) if necessary
         folder_embeddings = folder_embeddings.reshape(1, -1)
+        print(f"Query embedding shape: {query_embedding.shape}")
+        print(f"Folder embeddings shape for {folder}: {folder_embeddings.shape}")
 
         # Calculate cosine similarity
         cosine_sim = cosine_similarity(query_embedding, folder_embeddings)
