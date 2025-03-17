@@ -19,6 +19,7 @@ with open('embeddings.json', 'r', encoding='utf-8') as f:
 
 # Function to find the best matching folder based on cosine similarity
 def get_best_folder(query):
+    # Use a simple embedding approach for the query (use a sentence transformer model or your method)
     query_embedding = model.encode([query])  # We won't need this with T5, as it will handle everything in context
     folder_similarities = {}
     
@@ -43,9 +44,13 @@ def get_document_info(folder, query, return_complete=False):
     document = "\n".join(folder_docs)  # Combine all documents into one context for the question-answering task
     input_text = f"question: {query} context: {document}"
     
-    # Tokenize and generate the answer
-    inputs = tokenizer.encode(input_text, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
-    outputs = model.generate(inputs, max_length=150, num_beams=4, early_stopping=True)
+    # Tokenize the input text
+    inputs = tokenizer(input_text, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
+    
+    # Generate the answer from the model
+    outputs = model.generate(inputs["input_ids"], max_length=150, num_beams=4, early_stopping=True)
+    
+    # Decode the output tokens to get the final answer
     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
     
     return answer
