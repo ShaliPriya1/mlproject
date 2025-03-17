@@ -1,10 +1,13 @@
 import os
 import json
-from sentence_transformers import SentenceTransformer
+from transformers import T5ForConditionalGeneration, T5Tokenizer
 from PyPDF2 import PdfReader
+import torch
+import numpy as np
 
-# Initialize sentence transformer model
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# Initialize T5 model and tokenizer
+model = T5ForConditionalGeneration.from_pretrained('t5-small')
+tokenizer = T5Tokenizer.from_pretrained('t5-small')
 
 # Directory containing the folders of documents
 root_folder = os.getcwd()  # Using the current working directory
@@ -26,6 +29,16 @@ def extract_text_from_pdf(pdf_path):
 embeddings = {}
 documents = {}
 filenames = {}
+
+# Function to get embeddings from T5 model
+def get_embedding_from_t5(text):
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
+    with torch.no_grad():
+        # Get the hidden states (token embeddings) from the encoder
+        outputs = model.encoder(inputs['input_ids'])[0]
+        # Average the token embeddings to get a single vector
+        embedding = outputs.mean(dim=1).cpu().numpy()
+    return embedding
 
 # Loop through the folders in the root folder
 for folder_name in os.listdir(root_folder):
@@ -49,7 +62,7 @@ for folder_name in os.listdir(root_folder):
             
             if text:
                 folder_documents.append(text)
-                embedding = model.encode(text)  # Generate embedding for the document text
+                embedding = get_embedding_from_t5(text)  # Generate embedding using T5
                 folder_embeddings.append(embedding.tolist())  # Convert the numpy array to a list
 
         # Only save the folder if it has valid PDFs
@@ -59,7 +72,7 @@ for folder_name in os.listdir(root_folder):
             filenames[folder_name] = pdf_files
 
 # Save embeddings, documents, and filenames to a JSON file
-with open('embeddings.json', 'w', encoding='utf-8') as f:
+with open('embeddings_t5.json', 'w', encoding='utf-8') as f:
     json.dump({
         'embeddings': embeddings,
         'documents': documents,
