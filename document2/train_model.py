@@ -62,7 +62,7 @@ for folder_name in os.listdir(root_folder):
 
                 # Generate the embedding for the document using T5
                 embedding = get_embeddings(text)
-                embeddings[folder_name].append(embedding)
+                embeddings[folder_name].append(embedding.tolist())  # Convert numpy array to list
 
 # Save embeddings to a file for later use in app.py
 with open('embeddings_t5.json', 'w', encoding='utf-8') as f:
