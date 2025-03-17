@@ -22,9 +22,13 @@ def get_best_folder(query):
     # Tokenize and encode the query text using T5
     inputs = tokenizer(query, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
     with torch.no_grad():
-        # Generate the embeddings for the query using T5
-        outputs = model.encoder(inputs['input_ids'])[0]  # Get hidden states from the encoder
-        query_embedding = outputs.mean(dim=1).cpu().numpy()  # Average the token embeddings
+        # Get the hidden states (token embeddings) from the encoder
+        outputs = model.encoder(inputs['input_ids'])[0]
+        query_embedding = outputs.mean(dim=1).cpu().numpy()  # Average the token embeddings to get a single vector
+    
+    # Ensure query embedding is a 2D array (1, 512)
+    query_embedding = query_embedding.reshape(1, -1)
+    print(f"Query embedding shape: {query_embedding.shape}")
 
     folder_similarities = {}
     
@@ -32,14 +36,14 @@ def get_best_folder(query):
     for folder, folder_embeddings in embeddings.items():
         folder_embedding = np.array(folder_embeddings)  # Convert list to numpy array
         
-        # Reshape to 2D arrays
+        # Ensure folder embedding is a 2D array (1, 512)
         if folder_embedding.ndim == 1:
             folder_embedding = folder_embedding.reshape(1, -1)
-        if query_embedding.ndim == 1:
-            query_embedding = query_embedding.reshape(1, -1)
         
-        cosine_sim = cosine_similarity(query_embedding, folder_embedding)
-        folder_similarities[folder] = cosine_sim.max()  # Get the highest cosine similarity
+        print(f"Folder embedding shape for {folder}: {folder_embedding.shape}")
+        
+        cosine_sim = cosine_similarity(query_embedding, folder_embedding)  # Calculate similarity
+        folder_similarities[folder] = cosine_sim.max()  # Use the maximum cosine similarity for each folder
     
     # Find the folder with the highest similarity
     best_folder = max(folder_similarities, key=folder_similarities.get)
