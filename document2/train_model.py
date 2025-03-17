@@ -19,10 +19,14 @@ filenames = {}
 
 # Function to generate embeddings for a document using T5
 def get_embeddings(text):
+    # Use T5 tokenizer to encode the input text
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
+    
+    # Generate the embeddings using the T5 model (the outputs contain hidden states)
     with torch.no_grad():
-        outputs = model.encode(inputs['input_ids'])  # Using model.encode might need changes as T5 is generative
-        embedding = outputs.last_hidden_state.mean(dim=1).cpu().numpy()  # Averaging over the token embeddings
+        outputs = model.encoder(inputs['input_ids'])[0]  # Encoder outputs the hidden states
+        embedding = outputs.mean(dim=1).cpu().numpy()  # Averaging over the token embeddings
+    
     return embedding
 
 # Function to extract text from a PDF file
