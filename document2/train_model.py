@@ -1,5 +1,6 @@
 import json
 import os
+import fitz  # PyMuPDF for reading PDF files
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 import torch
 import numpy as np
@@ -21,8 +22,19 @@ def get_embeddings(text):
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
     with torch.no_grad():
         outputs = model.encode(inputs['input_ids'])  # Using model.encode might need changes as T5 is generative
-        embedding = outputs.last_hidden_state.mean(dim=1).cpu().numpy()  # Take the mean of the hidden states as the embedding
+        embedding = outputs.last_hidden_state.mean(dim=1).cpu().numpy()  # Averaging over the token embeddings
     return embedding
+
+# Function to extract text from a PDF file
+def extract_text_from_pdf(pdf_path):
+    doc = fitz.open(pdf_path)
+    text = ""
+    
+    # Iterate over each page and extract text
+    for page in doc:
+        text += page.get_text()
+
+    return text
 
 # Loop through directories (each folder contains documents)
 for folder_name in os.listdir(root_folder):
@@ -39,9 +51,8 @@ for folder_name in os.listdir(root_folder):
                 file_path = os.path.join(folder_path, filename)
                 filenames[folder_name].append(filename)
 
-                # Open and read the PDF content
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    text = f.read()
+                # Extract text from the PDF
+                text = extract_text_from_pdf(file_path)
 
                 documents[folder_name].append(text)
 
