@@ -50,17 +50,24 @@ def get_best_folder(query):
         # Ensure folder embedding is a 2D array (1, 512)
         folder_embedding = folder_embedding.reshape(1, -1)
         
-        print(f"Folder name embedding shape for {folder}: {folder_embedding.shape}")
+        # Log folder name embedding and query embedding for debugging
+        print(f"Folder: {folder}, Folder name embedding: {folder_embedding}")
+        print(f"Query embedding: {query_embedding}")
+
         if folder_embedding.shape[1] == 0:
             return f"Error: Folder embedding for {folder} has no features."
 
+        # Calculate cosine similarity
         cosine_sim = cosine_similarity(query_embedding, folder_embedding)  # Calculate similarity
         folder_similarities[folder] = cosine_sim.max()  # Use the maximum cosine similarity for each folder
     
+    # Log folder similarities for debugging
+    print(f"Folder similarities: {folder_similarities}")
+
     # Find the folder with the highest similarity
     if folder_similarities:
         best_folder = max(folder_similarities, key=folder_similarities.get)
-        print(f"Best folder: {best_folder}")
+        print(f"Best folder: {best_folder} with similarity {folder_similarities[best_folder]}")
         return best_folder
     else:
         return "No matching folder found."
