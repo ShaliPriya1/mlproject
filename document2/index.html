@@ -43,6 +43,12 @@
             background-color: #f1f8e9;
             text-align: left;
         }
+        #loading {
+            display: none;
+            text-align: center;
+            font-size: 16px;
+            color: #888;
+        }
     </style>
 </head>
 <body>
@@ -53,6 +59,7 @@
         <input type="text" id="user-input" placeholder="Type your question..." />
         <button id="send-btn">Send</button>
     </div>
+    <div id="loading">Loading...</div>
 
     <script>
         // Function to append user and bot messages to the chatbox
@@ -71,6 +78,7 @@
             if (userInput.trim() !== "") {
                 appendMessage(userInput, "user");
                 document.getElementById("user-input").value = "";  // Clear the input field
+                document.getElementById("loading").style.display = 'block';  // Show loading indicator
                 
                 // Send the input to the Flask backend
                 fetch('/chat', {
@@ -84,9 +92,12 @@
                 .then(data => {
                     const botResponse = data.response;
                     appendMessage(botResponse, "bot");
+                    document.getElementById("loading").style.display = 'none';  // Hide loading indicator
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                    appendMessage("Sorry, there was an error processing your request.", "bot");
+                    document.getElementById("loading").style.display = 'none';  // Hide loading indicator
                 });
             }
         });
