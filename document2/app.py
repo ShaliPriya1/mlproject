@@ -16,6 +16,7 @@ with open('embeddings_t5.json', 'r', encoding='utf-8') as f:
     embeddings = data['embeddings']
     filenames = data['filenames']
     documents = data['documents']
+    folder_names_embeddings = data['folder_names_embeddings']  # Load the folder name embeddings
 
 # Function to find the best matching folder based on cosine similarity
 def get_best_folder(query):
@@ -42,18 +43,14 @@ def get_best_folder(query):
 
     folder_similarities = {}
     
-    # Calculate cosine similarity with each folder's embeddings
-    for folder, folder_embeddings in embeddings.items():
-        folder_embedding = np.array(folder_embeddings)  # Convert list to numpy array
+    # Calculate cosine similarity with each folder's name embedding
+    for folder, folder_name_embedding in folder_names_embeddings.items():
+        folder_embedding = np.array(folder_name_embedding)  # Convert list to numpy array
         
         # Ensure folder embedding is a 2D array (1, 512)
-        if folder_embedding.ndim == 3:  # If it has an extra dimension, squeeze it
-            folder_embedding = folder_embedding.squeeze(0)  # Remove the extra dimension
-        
-        # Ensure the folder embedding is 2D (1, 512)
         folder_embedding = folder_embedding.reshape(1, -1)
         
-        print(f"Folder embedding shape for {folder}: {folder_embedding.shape}")
+        print(f"Folder name embedding shape for {folder}: {folder_embedding.shape}")
         if folder_embedding.shape[1] == 0:
             return f"Error: Folder embedding for {folder} has no features."
 
