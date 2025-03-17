@@ -1,71 +1,69 @@
-import json
 import os
-import fitz  # PyMuPDF for reading PDF files
-from transformers import T5Tokenizer, T5ForConditionalGeneration
-import torch
-import numpy as np
+import json
+from sentence_transformers import SentenceTransformer
+from PyPDF2 import PdfReader
 
-# Load T5 model and tokenizer
-model = T5ForConditionalGeneration.from_pretrained('t5-small')  # You can use 't5-base' or 't5-large' for better performance
-tokenizer = T5Tokenizer.from_pretrained('t5-small')
+# Initialize sentence transformer model
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
-# Directory containing the folders of documents (Use the current directory)
-root_folder = os.getcwd()
+# Directory containing the folders of documents
+root_folder = os.getcwd()  # Using the current working directory
 
-# Initialize data storage
-documents = {}
+# Function to read PDF files and extract text
+def extract_text_from_pdf(pdf_path):
+    try:
+        with open(pdf_path, "rb") as file:
+            reader = PdfReader(file)
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text()
+            return text.strip()
+    except Exception as e:
+        print(f"Error reading {pdf_path}: {e}")
+        return ""
+
+# Initialize data structures
 embeddings = {}
+documents = {}
 filenames = {}
 
-# Function to generate embeddings for a document using T5
-def get_embeddings(text):
-    # Use T5 tokenizer to encode the input text
-    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
-    
-    # Generate the embeddings using the T5 model (the outputs contain hidden states)
-    with torch.no_grad():
-        outputs = model.encoder(inputs['input_ids'])[0]  # Encoder outputs the hidden states
-        embedding = outputs.mean(dim=1).cpu().numpy()  # Averaging over the token embeddings
-    
-    return embedding
-
-# Function to extract text from a PDF file
-def extract_text_from_pdf(pdf_path):
-    doc = fitz.open(pdf_path)
-    text = ""
-    
-    # Iterate over each page and extract text
-    for page in doc:
-        text += page.get_text()
-
-    return text
-
-# Loop through directories (each folder contains documents)
+# Loop through the folders in the root folder
 for folder_name in os.listdir(root_folder):
     folder_path = os.path.join(root_folder, folder_name)
     
-    if os.path.isdir(folder_path):  # Ensure we're working with folders only
-        documents[folder_name] = []
-        embeddings[folder_name] = []
-        filenames[folder_name] = []
+    if os.path.isdir(folder_path):
+        # List to hold the folder's document texts and embeddings
+        folder_documents = []
+        folder_embeddings = []
         
-        # Loop through the files inside each folder
-        for filename in os.listdir(folder_path):
-            if filename.endswith(".pdf"):  # Process only PDF files
-                file_path = os.path.join(folder_path, filename)
-                filenames[folder_name].append(filename)
+        # Check if folder contains PDF files
+        pdf_files = [f for f in os.listdir(folder_path) if f.lower().endswith('.pdf')]
+        if not pdf_files:
+            print(f"No PDF files found in folder: {folder_name}")
+            continue  # Skip folder if no PDF files are found
 
-                # Extract text from the PDF
-                text = extract_text_from_pdf(file_path)
+        # Process PDF files in the folder
+        for pdf_file in pdf_files:
+            pdf_path = os.path.join(folder_path, pdf_file)
+            text = extract_text_from_pdf(pdf_path)
+            
+            if text:
+                folder_documents.append(text)
+                embedding = model.encode(text)  # Generate embedding for the document text
+                folder_embeddings.append(embedding)
 
-                documents[folder_name].append(text)
+        # Only save the folder if it has valid PDFs
+        if folder_documents:
+            embeddings[folder_name] = folder_embeddings
+            documents[folder_name] = folder_documents
+            filenames[folder_name] = pdf_files
 
-                # Generate the embedding for the document using T5
-                embedding = get_embeddings(text)
-                embeddings[folder_name].append(embedding.tolist())  # Convert numpy array to list
+# Save embeddings, documents, and filenames to a JSON file
+with open('embeddings.json', 'w', encoding='utf-8') as f:
+    json.dump({
+        'embeddings': embeddings,
+        'documents': documents,
+        'filenames': filenames
+    }, f, ensure_ascii=False, indent=4)
 
-# Save embeddings to a file for later use in app.py
-with open('embeddings_t5.json', 'w', encoding='utf-8') as f:
-    json.dump({'embeddings': embeddings, 'filenames': filenames, 'documents': documents}, f, ensure_ascii=False, indent=4)
-
-print("Model training and embedding generation complete!")
+print("Embedding extraction complete.")
